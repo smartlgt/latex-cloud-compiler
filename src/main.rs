@@ -29,13 +29,13 @@ fn main() {
             .short("s")
             .long("server")
             .value_name("SERVER")
-            .help("http(s) endpoint")
+            .help("http(s) endpoint or use the LATEX_CLOUD_SERVER env var")
             .takes_value(true))
     .arg(Arg::with_name("token")
             .short("t")
             .long("token")
             .value_name("TOKEN")
-            .help("access token for the authorized header")
+            .help("access token for the authorized header or use the LATEX_CLOUD_TOKEN env var")
             .takes_value(true))
     .arg(Arg::with_name("FILE_PATH")
             .help("path to a tex file")
@@ -43,10 +43,17 @@ fn main() {
             .index(1))
     .get_matches();
 
+    let default_server = String::from("http://127.0.0.1:5000/");
+    let default_token = String::from("changeme");
+
+    // chekc the env for connection params
+    let env_server = env::var("LATEX_CLOUD_SERVER").unwrap_or(default_server);
+    let env_token = env::var("LATEX_CLOUD_TOKEN").unwrap_or(default_token);
+
     // check if relative or full path was given
     let mut filepath = Path::new(matches.value_of("FILE_PATH").unwrap());
-    let server = matches.value_of("server").unwrap_or("http://127.0.0.1:5000/");
-    let token = matches.value_of("token").unwrap_or("changeme");
+    let server = matches.value_of("server").unwrap_or(&env_server);
+    let token = matches.value_of("token").unwrap_or(&env_token);
 
     let mut new_path;
     let new_path2;
