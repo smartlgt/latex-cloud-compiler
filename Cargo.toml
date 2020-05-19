@@ -1,5 +1,5 @@
 [package]
-name = "latex-proxy"
+name = "latex-cloud-compiler"
 version = "0.1.0"
 authors = ["Daniel Leinfelder <daniel@smart-lgt.com>"]
 edition = "2018"

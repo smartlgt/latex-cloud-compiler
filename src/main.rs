@@ -21,28 +21,24 @@ fn is_hidden(entry: &DirEntry) -> bool {
 
 
 fn main() {
-
-
-
-
     let matches = App::new("Cloud LaTeX")
     .version("0.1.0")
     .author("Daniel Leinfelder <daniel@smart-lgt.com>")
-    .about("send a tex file (and all other files in the target directory) to a cloud tex compiler")
+    .about("send a tex file (and all other files in the target directory, depth = 2) to a cloud tex compiler")
     .arg(Arg::with_name("server")
             .short("s")
             .long("server")
             .value_name("SERVER")
-            .help("set a http(s) endpoint")
+            .help("http(s) endpoint")
             .takes_value(true))
     .arg(Arg::with_name("token")
             .short("t")
             .long("token")
             .value_name("TOKEN")
-            .help("access token for the Authorized header")
+            .help("access token for the authorized header")
             .takes_value(true))
     .arg(Arg::with_name("FILE_PATH")
-            .help("path to your tex file")
+            .help("path to a tex file")
             .required(true)
             .index(1))
     .get_matches();
