@@ -1,6 +1,5 @@
 use reqwest;
 use reqwest::blocking::multipart;
-use std::collections::HashMap;
 use std::fs::File;
 use std::fs;
 use std::path::Path;
@@ -20,11 +19,49 @@ fn is_hidden(entry: &DirEntry) -> bool {
 
 
 fn main() {
+
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        println!("usage: cloudtex path-to-tex-file");
+        return
+        
+    }
+
+
+    // check if relative or full path was given
+    let mut filepath = Path::new( &args[1]);
+
+    let mut new_path;
+    let new_path2;
+
+    if filepath.is_relative() {
+            new_path = env::current_dir().unwrap();
+            // put the relativ path ontop of the file eecut
+            new_path.push(filepath);
+            filepath = new_path.as_path();
+            new_path2 = filepath.canonicalize().unwrap();
+            filepath = new_path2.as_path();
+    }
+
+    if !filepath.exists() || !filepath.is_file() {
+        println!("{} is no a file or deose not exist", filepath.display());
+        return
+    }
+
+    let dirpath = filepath.parent().unwrap();
+    let filename = filepath.file_name().unwrap();
+
+    println!("start cloud tex compiler for: {}", filepath.display());
+
     let mut form = multipart::Form::new();
 
-    let path = env::current_dir().unwrap();
+    let fls = filename.to_string_lossy();
+    form = form.file(String::from(fls), filepath).unwrap();
+
     
-    let walker = WalkDir::new(Path::new(&path)).max_depth(2).into_iter();
+    
+    let walker = WalkDir::new(dirpath).max_depth(2).into_iter();
 
     let mut counter = 1;
     let mut total_size = 0;
@@ -38,43 +75,21 @@ fn main() {
         let p = entry.unwrap();
         let pp = p.path();
 
+        // skip the main file
+        if filepath == pp {
+            continue
+        }
+
         let metadata = fs::metadata(pp).unwrap();
-        if (metadata.is_file()) {
+        if metadata.is_file() {
 
             total_size += metadata.len();
-            
-            //println!("{:?}", metadata.file_type());
-            println!("{}", pp.display());
 
-
-            let p2 = pp.to_str();
-            let x = p2.unwrap();
-
-            form = form.file(counter.to_string(), pp).unwrap();
-            //let bio = multipart::Part::file(pp).unwrap().file_name(x);
-
-            //form = form.part(x, bio);
-            //form = form.text("", "");
+            //println!("{}", pp.display());
+            form = form.file(String::from(pp.to_str().unwrap()), pp).unwrap();
 
 
         }
-
-        /*
-
-        let metadata = fs::metadata(&pp).unwrap();
-        if (metadata.is_file()) {
-
-            println!("{:?}", metadata.file_type());
-
-            //println!("{}", entry.path().display());
-
-            let p = &pp.to_str();
-            
-                let x = p.unwrap();
-
-                form = form.file(x, pp).unwrap();
-            
-        }*/
 
     }
 
@@ -91,73 +106,41 @@ fn main() {
 
 
 
-    let mut req = client
+    let req = client
     .post("http://127.0.0.1:5000/")
     .header(AUTHORIZATION, "changeme")
-    .multipart(form);
+    .multipart(form);   
+    
+    let resp = req.send().unwrap();
+    //println!("{:#?}", resp);
 
+    println!("cloud status response code: {}", resp.status());
+
+    let code = resp.status();
+    if code.is_success() {
+        // response is a single pdf
+        let body = resp.bytes().unwrap();
+        //println!("{:#?}", body);
+
+        let output_name = Path::new(filename).file_stem().unwrap();
+
+        let mut file = File::create(format!("{}.{}", output_name.to_string_lossy(), "pdf")).expect("error creating file");
+        file.write_all(&body).expect("error writing output file");
+
+        std::process::exit(0);
+
+    } else if code.as_u16() == 422 {
+        // latex compile error, body containst the error log
+        let body = resp.text().unwrap();
+
+        eprintln!("{}", body);
+        std::process::exit(1);
+
+    }
     
     
+    eprintln!("something went wrong");
+    std::process::exit(1);
     
     
-    let resp = req.send();
-
-
-    
-    println!("{:#?}", resp);
-
-
-    let body = resp.unwrap().bytes().unwrap();
-    //println!("{:#?}", body);
-
-    let mut file = File::create("output.pdf").expect("error creating file");
-    file.write_all(&body);
-
 }
-
-
-    
-    /*
-    let client = reqwest::Client::new();
-    let form = reqwest::multipart::Form::new()
-        .text("key3", "value3")
-        .file("file", "/path/to/field")?;
-    
-    let response = client.post("your url")
-        .multipart(form)
-        .send()?;
-
-
-
-    let bio = multipart::Part::text("main.tex")
-    .file_name("main.tex")
-    .mime_str("text/plain").expect("error loading file");
-
-    let form = multipart::Form::new();
-
-    form.await?.file("main.tex", "test.tex");
-
-    // Add the custom part to our form...
-    let form_part = form.part("main.tex", bio);
-
-
-
-
-    // And finally, send the form
-    let client = reqwest::Client::new();
-    let resp = client
-        .post("http://127.0.0.1:5000/")
-        .multipart(form_part)
-        .send()
-        .await?;
-
-    println!("{:#?}", resp);
-
-    let body = resp.text().await?;    
-    println!("{:#?}", body);
-
-
-    Ok(())
-    
-
-*/
