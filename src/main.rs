@@ -10,6 +10,8 @@ use walkdir::{DirEntry, WalkDir};
 
 use std::env;
 
+use clap::{Arg, App};
+
 fn is_hidden(entry: &DirEntry) -> bool {
     entry.file_name()
          .to_str()
@@ -20,17 +22,42 @@ fn is_hidden(entry: &DirEntry) -> bool {
 
 fn main() {
 
-    let args: Vec<String> = env::args().collect();
 
-    if args.len() < 2 {
-        println!("usage: cloudtex path-to-tex-file");
-        return
-        
-    }
+
+
+    let matches = App::new("Cloud LaTeX")
+    .version("0.1.0")
+    .author("Daniel Leinfelder <daniel@smart-lgt.com>")
+    .about("send a tex file (and all other files in the target directory) to a cloud tex compiler")
+    .arg(Arg::with_name("server")
+            .short("s")
+            .long("server")
+            .value_name("SERVER")
+            .help("set a http(s) endpoint")
+            .takes_value(true))
+    .arg(Arg::with_name("token")
+            .short("t")
+            .long("token")
+            .value_name("TOKEN")
+            .help("access token for the Authorized header")
+            .takes_value(true))
+    .arg(Arg::with_name("FILE_PATH")
+            .help("path to your tex file")
+            .required(true)
+            .index(1))
+    .get_matches();
+
+
+
+    println!("{:#?}", matches);
 
 
     // check if relative or full path was given
-    let mut filepath = Path::new( &args[1]);
+    let mut filepath = Path::new(matches.value_of("FILE_PATH").unwrap());
+    let server = matches.value_of("server").unwrap_or("http://127.0.0.1:5000/");
+    let token = matches.value_of("token").unwrap_or("changeme");
+
+    println!("connect to server {} with token {}", server, token);
 
     let mut new_path;
     let new_path2;
@@ -93,25 +120,16 @@ fn main() {
 
     }
 
-
-
-    println!("transfer total size: {} bytes", total_size);
     let total_size_mb = total_size as f64 / 1024.0 / 1024.0;
     println!("transfer total size: {:.2} mb", total_size_mb);
     
-
-
-
     let client = reqwest::blocking::Client::new();
-
-
-
     let req = client
-    .post("http://127.0.0.1:5000/")
-    .header(AUTHORIZATION, "changeme")
-    .multipart(form);   
+    .post(server)
+    .header(AUTHORIZATION, token)
+    .multipart(form);
     
-    let resp = req.send().unwrap();
+    let resp = req.send().expect("error connection to server or sending data\n");
     //println!("{:#?}", resp);
 
     println!("cloud status response code: {}", resp.status());
@@ -139,8 +157,9 @@ fn main() {
     }
     
     
-    eprintln!("something went wrong");
+    eprintln!("something went wrong:");
+    let body = resp.text().unwrap();
+    eprintln!("{}", body);
+
     std::process::exit(1);
-    
-    
 }
