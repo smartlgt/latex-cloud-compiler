@@ -47,17 +47,10 @@ fn main() {
             .index(1))
     .get_matches();
 
-
-
-    println!("{:#?}", matches);
-
-
     // check if relative or full path was given
     let mut filepath = Path::new(matches.value_of("FILE_PATH").unwrap());
     let server = matches.value_of("server").unwrap_or("http://127.0.0.1:5000/");
     let token = matches.value_of("token").unwrap_or("changeme");
-
-    println!("connect to server {} with token {}", server, token);
 
     let mut new_path;
     let new_path2;
