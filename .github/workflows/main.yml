@@ -35,7 +35,8 @@ jobs:
       - name: Install OpenSSL (x86)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
-          sudo apt-get install -y libssl-dev
+          echo "system specific changes for open ssl, for details see: https://docs.rs/openssl/0.10.29/openssl/#automatic"
+          sudo apt-get install -y pkg-config libssl-dev
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
@@ -60,4 +61,3 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/release/${{ matrix.artifact_name }}
           asset_name: ${{ matrix.asset_name }}
-          tag: ${{ github.ref }}
