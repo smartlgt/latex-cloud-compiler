@@ -32,11 +32,12 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
           override: true
-      - name: Install OpenSSL (x86)
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-        run: |
-          echo "system specific changes for open ssl, for details see: https://docs.rs/openssl/0.10.29/openssl/#automatic"
-          sudo apt-get install -y pkg-config libssl-dev
+      # default ubuntu has openssl installed, this is not needed, corss loads a custom docker image
+      #- name: Install OpenSSL (x86)
+      #  if: matrix.target == 'x86_64-unknown-linux-gnu'
+      #  run: |
+      #    echo "system specific changes for open ssl, for details see: https://docs.rs/openssl/0.10.29/openssl/#automatic"
+      #    sudo apt-get install -y pkg-config libssl-dev
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
@@ -61,3 +62,4 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/release/${{ matrix.artifact_name }}
           asset_name: ${{ matrix.asset_name }}
+          asset_content_type: application/octet-stream
